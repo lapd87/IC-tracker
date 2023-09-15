@@ -17,16 +17,12 @@ type PackageHolder = Record<{
     name: string;
 }>;
 
-// Define a type for a package
-//TODO fix with enum if possible
-//type PackageStatus = "processing" | "in transit" | "delivered";
-
-const packageStatusStrings = {
-    PROCESSING: "processing",
-    IN_TRANSIT: "in transit",
-    DELIVERED: "delivered",
+// Define a type for a package status enum
+enum PackageStatus {
+    PROCESSING = "processing",
+    IN_TRANSIT = "in transit",
+    DELIVERED = "delivered",
 }
-
 
 // Define a type for history with package holder and current timestamp
 type PackageHolderWithTimestamp = Record<{
@@ -36,7 +32,7 @@ type PackageHolderWithTimestamp = Record<{
 
 type Package = Record<{
     id: string;
-    status: string;
+    status: PackageStatus;
     sender: PackageHolder;
     recipient: PackageHolder;
     currentPackageHolder: PackageHolder;
@@ -48,7 +44,7 @@ type Package = Record<{
 const packageStorage = new StableBTreeMap<string, Package>(0, 44, 1024);
 
 // Define storage for package holders
-const packageHolderStorage = new StableBTreeMap<string, PackageHolder>(1, 44, 1024,);
+const packageHolderStorage = new StableBTreeMap<string, PackageHolder>(1, 44, 1024);
 
 // Function to create a new package holder
 $update;
@@ -109,7 +105,7 @@ export function createPackage(
 
     const sender = getPackageHolderById(senderId);
 
-    if (!sender || !sender.Ok || sender.Err) {
+    if (!sender || sender.Err) {
         return Result.Err<Package, string>(
             `Could not update package with the holder id=${senderId}. Package holder not found!`,
         );
@@ -117,7 +113,7 @@ export function createPackage(
 
     const recipient = getPackageHolderById(recipientId);
 
-    if (!recipient || !recipient.Ok || recipient.Err) {
+    if (!recipient || recipient.Err) {
         return Result.Err<Package, string>(
             `Could not update package with the holder id=${recipientId}. Package holder not found!`,
         );
@@ -125,7 +121,7 @@ export function createPackage(
 
     const firstDeliveryPerson = getPackageHolderById(firstDeliveryPersonId);
 
-    if (!firstDeliveryPerson || !firstDeliveryPerson.Ok || firstDeliveryPerson.Err) {
+    if (!firstDeliveryPerson || firstDeliveryPerson.Err) {
         return Result.Err<Package, string>(
             `Could not update package with the holder id=${firstDeliveryPersonId}. Package holder not found!`,
         );
@@ -136,7 +132,7 @@ export function createPackage(
         id: packageId,
         sender: sender.Ok,
         recipient: recipient.Ok,
-        status: packageStatusStrings.PROCESSING, // Set the initial status as "processing"
+        status: PackageStatus.PROCESSING, // Set the initial status as "processing"
         currentPackageHolder: firstDeliveryPerson.Ok, // Set the current package holder
         deliveryHistory: [
             // Add the sender to the history upon creation
@@ -184,7 +180,7 @@ export function updatePackage(
 
     const newPackageHolder = getPackageHolderById(newPackageHolderId);
 
-    if (!newPackageHolder || !newPackageHolder.Ok || newPackageHolder.Err) {
+    if (!newPackageHolder || newPackageHolder.Err) {
         return Result.Err<Package, string>(
             `Could not update package with the new holder id=${newPackageHolderId}. Package holder not found!`,
         );
@@ -192,18 +188,18 @@ export function updatePackage(
 
     const existingPackage = getPackageById(packageId);
 
-    if (!existingPackage || !existingPackage.Ok || existingPackage.Err) {
+    if (!existingPackage || existingPackage.Err) {
         return Result.Err<Package, string>(
             `Could not update package with the given id=${packageId}. Package not found!`,
         );
     }
 
     // Step 1: Set the updated status to "in transit"
-    let updatedStatus = packageStatusStrings.IN_TRANSIT;
+    let updatedStatus = PackageStatus.IN_TRANSIT;
 
     // Check if the current package holder is the same as the recipient
     if (existingPackage.Ok.currentPackageHolder.uuid === existingPackage.Ok.recipient.uuid) {
-        updatedStatus = packageStatusStrings.DELIVERED;
+        updatedStatus = PackageStatus.DELIVERED;
     }
 
     // Step 2: Create a new delivery history entry
@@ -229,4 +225,3 @@ export function updatePackage(
     // Step 5: Return the updated package as a Result.Ok
     return Result.Ok(updatedPackage);
 }
-
