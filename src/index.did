@@ -14,9 +14,11 @@ type PackageHolderWithTimestamp = record {
 };
 type _AzleResult = variant { Ok : Package; Err : text };
 type _AzleResult_1 = variant { Ok : PackageHolder; Err : text };
+type _AzleResult_2 = variant { Ok : vec PackageHolder; Err : text };
 service : () -> {
   createPackage : (text, text, text) -> (_AzleResult);
   createPackageHolder : (text) -> (_AzleResult_1);
+  getAllPackageHolders : () -> (_AzleResult_2) query;
   getPackageById : (text) -> (_AzleResult) query;
   getPackageHolderById : (text) -> (_AzleResult_1) query;
   updatePackage : (text, text) -> (_AzleResult);
