@@ -230,3 +230,16 @@ export function updatePackage(
     return Result.Ok(updatedPackage);
 }
 
+// A workaround to make the uuid package work with Azle
+globalThis.crypto = {
+    // @ts-ignore
+    getRandomValues: () => {
+        const array = new Uint8Array(32);
+
+        for (let i = 0; i < array.length; i++) {
+            array[i] = Math.floor(Math.random() * 256);
+        }
+
+        return array;
+    },
+};
