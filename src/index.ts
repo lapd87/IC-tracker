@@ -132,6 +132,7 @@ export function createPackage(
     }
 
     const packageId = uuidv4();
+    const currentTimestamp = ic.time();
     const newPackage: Package = {
         id: packageId,
         sender: sender.Ok,
@@ -142,15 +143,15 @@ export function createPackage(
             // Add the sender to the history upon creation
             {
                 packageHolder: sender.Ok,
-                timestamp: ic.time(),
+                timestamp: currentTimestamp,
             },
             // Add the initial delivery person to the history upon creation
             {
                 packageHolder: firstDeliveryPerson.Ok,
-                timestamp: ic.time(),
+                timestamp: currentTimestamp,
             },
         ],
-        createdAt: ic.time(),
+        createdAt: currentTimestamp,
     };
 
     packageStorage.insert(packageId, newPackage);
@@ -198,11 +199,23 @@ export function updatePackage(
         );
     }
 
+    if (existingPackage.Ok.status === packageStatusStrings.DELIVERED) {
+        return Result.Err<Package, string>(
+            `Could not update package with the given id=${packageId}. Package already delivered!`,
+        );
+    }
+
+    if (existingPackage.Ok.deliveryHistory.some(dh => dh.packageHolder.uuid === newPackageHolderId)) {
+        return Result.Err<Package, string>(
+            `Could not update package with the given id=${packageId}. New package holder already had the package!`,
+        );
+    }
+
     // Step 1: Set the updated status to "in transit"
     let updatedStatus = packageStatusStrings.IN_TRANSIT;
 
-    // Check if the current package holder is the same as the recipient
-    if (existingPackage.Ok.currentPackageHolder.uuid === existingPackage.Ok.recipient.uuid) {
+    // Check if the new package holder is the same as the recipient
+    if (newPackageHolderId === existingPackage.Ok.recipient.uuid) {
         updatedStatus = packageStatusStrings.DELIVERED;
     }
 
