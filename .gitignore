@@ -142,6 +142,8 @@ dist
 # dfx temporary files
 .dfx/
 
+src/index.did
+
 # generated files
 src/declarations/
 
